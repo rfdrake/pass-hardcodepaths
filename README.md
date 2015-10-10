@@ -1,4 +1,5 @@
 # Overview
+
 I sent an email about this to Jason@zx2c4.com on 9/9/2015 because I didn't
 want to post to a public mailing list about a security issue.  I never got a
 response back.  The email might have been overlooked or a response might have
@@ -108,6 +109,8 @@ those users just have a broken program by default.
 
 # Final thoughts (possible other pass issues)
 
+## Eval and glob expansion
+
 I'm concerned about potentially dangerous use of eval and the usage of user
 created files as variables.  I think it would be good to have unit tests with
 weird file or directory names like:
@@ -118,6 +121,19 @@ filenames that begin with a dash, file names with asterisk or question mark
 (glob expansion), etc.  Unlike the sneaky path check, I don't think testing
 these at runtime is needed.  It would be best to just make sure all normal
 tests can be done while screwed up filenames are in place.
+
+## gnupg compression setting (-compress-algo=none)
+
+In theory, passwords are uncompressable so this would seem to be a performance
+optimization, but in practice I think there are many situations where users
+store more than just a password.  Adding a few common fields like "Login:" or
+"Email:" gives you some known plaintext to work on and the lack of compression
+should make an attackers job easier, right?
+
+Maybe I'm behind the times and compression is now pointless, but I couldn't
+find a comment or documentation describing this choice.  It would be nice if
+it were clearly stated what the intention was and possibly documented so users
+would know to turn it back on in an environment variable if they want it.
 
 # Some references
 

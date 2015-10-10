@@ -18,6 +18,12 @@ program to perform a function.
 
 gpg, env, git and any other dynamic pathed binary can be overridden by someone with write access to the path.
 
+
+## TL;DR
+
+It's trivial to capture a passphrase and upload it if you have access to the
+users account.
+
 ## Example PATH where this might be an issue
 
     rdrake@machine:~$ echo $PATH
@@ -111,37 +117,6 @@ of a binary or it might be a host where they have no admin rights and can only
 install binaries that are writable by themselves.  If it's fixed this way then
 those users just have a broken program by default.
 
-## Other possible issues
-
-While looking at the code to try to fix this problem I saw some other things,
-but I didn't have time to look at them throughly.
-
-### Eval and glob expansion
-
-I'm concerned about potentially dangerous use of eval and the usage of user
-created files as variables.  I think it would be good to have unit tests with
-weird file or directory names like:
-
-    "; if [[ 1 == 1 ]]"
-
-Filenames that begin with a dash, file names with asterisk or question mark
-(glob expansion), etc.  Unlike the sneaky path check, I don't think testing
-these at runtime is needed.  It would be best to just make sure all normal
-tests can be done while screwed up filenames are in place.
-
-### gnupg compression setting (-compress-algo=none)
-
-In theory, passwords are uncompressable so this would seem to be a performance
-optimization, but in practice I think there are many situations where users
-store more than just a password.  Adding a few common fields like "Login:" or
-"Email:" gives you some known plaintext to work on and the lack of compression
-should make an attackers job easier, right?
-
-Maybe I'm behind the times and compression is now pointless, but I couldn't
-find a comment or documentation describing this choice.  It would be nice if
-it were clearly stated what the intention was and possibly documented so users
-would know to turn it back on in an environment variable if they want it.
-
 ## Some references
 
 A Style guide might help if one is not already used.  Google's seems to be
@@ -158,3 +133,21 @@ https://news.ycombinator.com/item?id=7815190
 The point being that since this is an app related to security, you need to be
 double sure you look at new code or features from an angle of how to break it
 or attack it.
+
+## Why bother?
+
+If a user has a compromised account and a USER-writable PATH, then someone
+could just as easily override the entire "pass" script right?
+
+This is true, but it doesn't mean the entire problem should be ignored.  If
+someone is paranoid and wants to do something about that type of issue they
+could solve it with the abovementioned alias that cancels PATH usage.  They
+could even rename their "pass" executable to "puppies" to avoid automated
+attacks.  These protections would be meaningless if the PATH still needed to
+be used in the script though.
+
+## Other possible issues
+
+I found a couple of other things that might be problems but I don't have time
+to look at them carefully.  If any of the pass developers want additional
+details, you can contact me via github or email.

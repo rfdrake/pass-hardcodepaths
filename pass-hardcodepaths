@@ -1,0 +1,74 @@
+#!/bin/bash
+
+shopt -s nullglob
+
+# the irony being that if the system is compromised, which and sed,
+# file and diff are all suspect here so this script really needs to run on a safe system
+
+# also, it's probably silly to do this with one sed command.  I would normally
+# have used a different language than bash but I'm trying to work with what
+# pass users already have installed on the system.
+
+# turns out the portability might be moot.  "sed -i" might be a GNU only
+# thing, in which case this will need to be altered for macosx
+
+yesno() {
+    [[ -t 0 ]] || return 0
+    local response
+    read -r -p "$1 [y/N] " response
+    [[ $response == [yY] ]] || exit 1
+}
+
+
+readonly BINARIES="bash gpg gpg2 pwgen mktemp shred git xclip sed cut sort find grep pkill qdbus base64 getopt editor mv cp rm rmdir mkdir dirname tail head tree printf sleep cat"
+readonly TAB=$'\t'  # should work as long as we use bash.  GNU sed has builtin \t but macosx/bsd does not
+
+sed_command="/^[${TAB} ]\+#/b;" # attempt to skip comment lines
+# the next 3 are for trying to skip lines where we're going to do the wrong thing
+sed_command+="/Configure git repository for gpg file diff./b;"
+sed_command+="/password store sleep on display \$DISPLAY/b;"
+sed_command+="/If the password store is a git repository, execute a git command/b;"
+sed_command+="s#\([${TAB} ]\)git rm -qr#\1/usr/bin/git rm -qr#g; /git rm -qr/b;" # special case git rm
+
+for BIN in ${BINARIES}; do
+    W=$(which ${BIN})
+
+    if [[ "${BIN}" == 'bash' ]]; then
+        sed_command+="s|^#!/usr/bin/env bash$|#!${W}|;"  # special case bash so we fix the first line
+    else
+        sed_command+="/\$PROGRAM ${BIN}/b;"              # skip if you find $PROGRAM ${BIN}
+        sed_command+="s#\([${TAB} ]\+\)${BIN} #\1${W} #g;"   # match spaces around the word
+        sed_command+="s#\"${BIN}\"#\"${W}\"#g;"            # match quoted word
+        sed_command+="s#\(\$(\)${BIN}\([ )]\)#\1${W}\2#g;" # match $(git ...
+    fi
+
+    if [[ "${BIN}" == 'find' ]]; then
+        sed_command+="s#<(${BIN} #<(${W} #g;"              # special case for <(find
+    fi
+
+    # resolve symlinks and see if it's an exe.  If not, issue a warning..
+    [[ "$(file $(readlink -f ${W}))" == *ASCII* ]] && echo "WARNING: ${BIN} points to non-binary executable.  Please audit this (${W})"
+    echo "      ${BIN} = ${W}"
+done
+
+yesno 'Do these paths look ok?'
+
+# nothing secret, we just want to make sure we don't overwrite something.
+TEMPF=`mktemp pass.XXXXXXXXXX`
+remove_tempfile() {
+    rm -f ${TEMPF}.bak ${TEMPF}
+}
+
+trap remove_tempfile INT TERM EXIT
+
+PASS_LOCATION=$(which pass)
+cp ${PASS_LOCATION} ${TEMPF}
+echo sed -i.bak "${sed_command}" ${TEMPF}
+sed -i.bak "${sed_command}" ${TEMPF}
+git diff ${TEMPF}.bak ${TEMPF}
+
+echo "Moving tempfile to pass.new.  You can install it in $PASS_LOCATION when ready."
+mv -i ${TEMPF} pass.new
+remove_tempfile
+
+echo "Consider using 'alias pass=\"PATH=/dev/null /usr/bin/pass\"' to audit pass or keep new versions safe."

@@ -7,23 +7,27 @@ been in the works and just never sent to me.  If either of those are the case
 I apologize for exposing this, but I would like to make sure pass users have a
 chance to rectify the problem if need be.
 
+I also didn't have a workaround at the time, but I didn't want to
+release information to the public without giving the user a way to make
+themselves safer.
+
 The vulnerability is inherent to all secure programs which exec another
 program to perform a function.
 
-# Description of the Problem
+## Description of the Problem
 
-which, env and any other dynamic pathed file can be overridden by someone with write access to the path.
+gpg, env, git and any other dynamic pathed binary can be overridden by someone with write access to the path.
 
-# Example PATH where this might be an issue
+## Example PATH where this might be an issue
 
     rdrake@machine:~$ echo $PATH
     /home/rdrake/perl5/bin:/home/rdrake/perl5/perlbrew/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
 
 
-cpan local:lib scripts setup perl5/bin to come first, and usually that is
+CPAN local:lib scripts setup perl5/bin to come first, and usually that is
 writable by the user.
 
-# Proof of concept
+## Proof of concept
 
 You can create a file like this:
 
@@ -40,7 +44,7 @@ save it, then call gpg with --passphrase-fd to give it the passphrase the user
 just gave them. All while uploading the entire password store somewhere else
 along with the passphrase.
 
-# Fixes
+## Fixes
 
 The safest solution is to hardcode all the paths in the pass script and
 possibly run a one-time setup routine which finds all the binaries first.  A
@@ -69,7 +73,7 @@ trusting external programs. I had decided to scrap what I wrote and switch to
 Crypt::OpenPGP because it was native perl, then I decided to look at how pass
 did it.
 
-# What pass-hardcodepath does
+## What pass-hardcodepath does
 
 First it will check to see if any executed binaries are really scripts and
 warn the user to audit them.  Then it creates a new "pass" file in the
@@ -82,7 +86,7 @@ developers if they wish to make changes to the way things work.  With this,
 you might easily convert the input file to semaphores or bash environment
 variables, then write a new script that does post-install audit/path fixup.
 
-# Maintaining hard coded paths
+## Maintaining hard coded paths
 
 In order to keep things safe, you might change the way you run pass so that it
 doesn't use a PATH.  An alias like this might work:
@@ -93,7 +97,7 @@ This breaks "pass git pull" because git-pull is a shell script and needs sed
 and other things.  That is the only limitation I've found so far.  I would
 probably recommend running "pass git pull" with a reduced safe path.
 
-# restricting the PATH environment variable vs hardcoding all paths
+## restricting the PATH environment variable vs hardcoding all paths
 
 Maybe an installation script could build a compatible path by stripping all
 user own paths from the environment.  This would be an example of the "reduced
@@ -107,9 +111,12 @@ of a binary or it might be a host where they have no admin rights and can only
 install binaries that are writable by themselves.  If it's fixed this way then
 those users just have a broken program by default.
 
-# Final thoughts (possible other pass issues)
+## Other possible issues
 
-## Eval and glob expansion
+While looking at the code to try to fix this problem I saw some other things,
+but I didn't have time to look at them throughly.
+
+### Eval and glob expansion
 
 I'm concerned about potentially dangerous use of eval and the usage of user
 created files as variables.  I think it would be good to have unit tests with
@@ -117,12 +124,12 @@ weird file or directory names like:
 
     "; if [[ 1 == 1 ]]"
 
-filenames that begin with a dash, file names with asterisk or question mark
+Filenames that begin with a dash, file names with asterisk or question mark
 (glob expansion), etc.  Unlike the sneaky path check, I don't think testing
 these at runtime is needed.  It would be best to just make sure all normal
 tests can be done while screwed up filenames are in place.
 
-## gnupg compression setting (-compress-algo=none)
+### gnupg compression setting (-compress-algo=none)
 
 In theory, passwords are uncompressable so this would seem to be a performance
 optimization, but in practice I think there are many situations where users
@@ -135,7 +142,7 @@ find a comment or documentation describing this choice.  It would be nice if
 it were clearly stated what the intention was and possibly documented so users
 would know to turn it back on in an environment variable if they want it.
 
-# Some references
+## Some references
 
 A Style guide might help if one is not already used.  Google's seems to be
 short and easy to implement while also covering some security concerns.

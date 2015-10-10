@@ -31,7 +31,7 @@ writable by the user.
 
 You can create a file like this:
 
-    cat ~/perl5/bin/gpg2:
+    cat ~/perl5/bin/gpg2
     #!/bin/bash
     echo "args were $*" > /tmp/file.$$
     exec /usr/bin/gpg2 "$@"

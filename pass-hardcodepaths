@@ -20,7 +20,7 @@ yesno() {
 }
 
 
-readonly BINARIES="bash gpg gpg2 pwgen mktemp shred git xclip sed cut sort find grep pkill qdbus base64 getopt editor mv cp rm rmdir mkdir dirname tail head tree printf sleep cat"
+readonly BINARIES="bash gpg gpg2 pwgen mktemp shred git xclip sed cut sort find grep pkill qdbus base64 getopt editor mv cp rm rmdir mkdir dirname tail head tree printf sleep cat which"
 readonly TAB=$'\t'  # should work as long as we use bash.  GNU sed has builtin \t but macosx/bsd does not
 
 sed_command="/^[${TAB} ]\+#/b;" # attempt to skip comment lines
